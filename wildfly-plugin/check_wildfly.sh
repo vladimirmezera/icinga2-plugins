@@ -58,7 +58,7 @@ is_absolute_path () {
 
 ## parse command-line
 
-short_opts='a:u:p:s:hm:'
+short_opts='a:u:p:s:c:hm:'
 long_opts='message:,help'
 
 # test which `getopt` version is available:
@@ -89,6 +89,7 @@ while [ $# -gt 0 ]; do
 	-u) user="$2"; shift;;
 	-p) password="$2"; shift;;
 	-s) server="$2"; shift;;
+	-c) controller=$2; shift;;
         --message|-m) message="$2"; shift ;;
         --help|-h)    usage; exit 0 ;;
         --)           shift; break ;;
@@ -105,7 +106,7 @@ done
 #Test jq command 
 require_command jq
 
-content=$(curl -s --digest -u $user:$password -X GET $url'/management/host/unify01.physter.lan/server/'$server'/core-service/platform-mbean/type/memory/?include-runtime=true')
+content=$(curl -s --digest -u $user:$password -X GET "$url/management/host/$controller/server/$server/core-service/platform-mbean/type/memory/?include-runtime=true")
 init=$(echo $content | jq '.["heap-memory-usage"].init')
 used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
