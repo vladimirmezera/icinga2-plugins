@@ -1,8 +1,7 @@
 #!/bin/sh
 #
 #
-# A simple "hello world" Nagios/Icinga check, to be used as a
-# template for writing other and more complex ones.
+# A simple "Wildfly check" to be used as for monitoring thread and jvm
 #
 
 me="$(basename $0)"
