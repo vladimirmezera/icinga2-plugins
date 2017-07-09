@@ -84,7 +84,6 @@ else
 fi
 
 while [ $# -gt 0 ]; do
-    echo "$1"
     case "$1" in
 	-a) url="$2"; shift;;
 	-u) user="$2"; shift;;
@@ -106,12 +105,13 @@ done
 #Test jq command 
 require_command jq
 
-content=$(curl --digest -u $user:$password -X GET $url'/management/host/unify01.physter.lan/server/'$server'/core-service/platform-mbean/type/memory/?include-runtime=true')
-echo "C: $content"
+content=$(curl -s --digest -u $user:$password -X GET $url'/management/host/unify01.physter.lan/server/'$server'/core-service/platform-mbean/type/memory/?include-runtime=true')
 init=$(echo $content | jq '.["heap-memory-usage"].init')
 used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
 max=$(echo $content | jq '.["heap-memory-usage"].max')
+
+message="HEAP parameters: init=$init, used=$used, committed=$commited, max=$max"
 
 echo "OK - ${message} | usedjvm=$used"
 exit $OK
