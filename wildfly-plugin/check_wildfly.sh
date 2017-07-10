@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #
-# A simple "Wildfly check" to be used as for monitoring thread and jvm
+# A simple "Wildfly check" to be used for monitoring thread and jvm
 #
 
 me="$(basename $0)"
@@ -10,10 +10,13 @@ usage () {
 cat <<EOF
 Usage: $me [options]
 A short description of what this check does should be here,
-but it is not (yet).
+but it is not (yet). If server run in 'standalone' mode don't setup parameters 's' and 'c'. 
 Options:
-  --message, -m  TEXT
-                Exit with OK status and use TEXT as check result message.
+  -a Address of endpoint e.g. http://localhost:9990/management
+  -u User for authentication 
+  -p Password for authentication
+  -s Server in domain mode
+  -c Host controller in domain mode
   --help, -h     Print this help text.
 EOF
 }
@@ -58,7 +61,7 @@ is_absolute_path () {
 ## parse command-line
 
 short_opts='a:u:p:s:c:hm:'
-long_opts='mode:,help'
+long_opts='help'
 
 # test which `getopt` version is available:
 # - GNU `getopt` will generate no output and exit with status 4
@@ -89,7 +92,6 @@ while [ $# -gt 0 ]; do
 	-p) password="$2"; shift;;
 	-s) server="$2"; shift;;
 	-c) controller=$2; shift;;
-        --mode|-m) message="$2"; shift ;;
         --help|-h)    usage; exit 0 ;;
         --)           shift; break ;;
     esac
@@ -105,13 +107,18 @@ done
 #Test jq command 
 require_command jq
 
-content=$(curl -s --digest -u $user:$password -X GET "$url/management/host/$controller/server/$server/core-service/platform-mbean/type/memory/?include-runtime=true")
+prefix=""
+if [ ! -z $server ] && [ ! -z $controller ];then
+  prefix="/host/$controller/server/$server"
+fi	
+
+content=$(curl -s --digest -u $user:$password -X GET "$url/management$prefix/core-service/platform-mbean/type/memory/?include-runtime=true")
 init=$(echo $content | jq '.["heap-memory-usage"].init')
 used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
 max=$(echo $content | jq '.["heap-memory-usage"].max')
 
-contentThread=$(curl -s --digest -u $user:$password -X GET "$url/management/host/$controller/server/$server/core-service/platform-mbean/type/threading/?include-runtime=true")
+contentThread=$(curl -s --digest -u $user:$password -X GET "$url/management$prefix/core-service/platform-mbean/type/threading/?include-runtime=true")
 
 usedThread=$(echo $contentThread | jq '.["thread-count"]')
 peakThread=$(echo $contentThread | jq '.["peak-thread-count"]')
