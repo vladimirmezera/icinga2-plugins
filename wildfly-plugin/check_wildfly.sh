@@ -58,7 +58,7 @@ is_absolute_path () {
 ## parse command-line
 
 short_opts='a:u:p:s:c:hm:'
-long_opts='message:,help'
+long_opts='mode:,help'
 
 # test which `getopt` version is available:
 # - GNU `getopt` will generate no output and exit with status 4
@@ -89,7 +89,7 @@ while [ $# -gt 0 ]; do
 	-p) password="$2"; shift;;
 	-s) server="$2"; shift;;
 	-c) controller=$2; shift;;
-        --message|-m) message="$2"; shift ;;
+        --mode|-m) message="$2"; shift ;;
         --help|-h)    usage; exit 0 ;;
         --)           shift; break ;;
     esac
@@ -111,7 +111,13 @@ used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
 max=$(echo $content | jq '.["heap-memory-usage"].max')
 
-message="HEAP parameters: init=$init, used=$used, committed=$commited, max=$max"
+contentThread=$(curl -s --digest -u $user:$password -X GET "$url/management/host/$controller/server/$server/core-service/platform-mbean/type/threading/?include-runtime=true")
 
-echo "OK - ${message} | usedjvm=$used"
+usedThread=$(echo $contentThread | jq '.["thread-count"]')
+peakThread=$(echo $contentThread | jq '.["peak-thread-count"]')
+createThread=$(echo $contentThread | jq '.["total-started-thread-count"]')
+
+message="HEAP parameters: init=$init, used=$used, committed=$commited, max=$max Thread parameters: used=$usedThread, peak=$peakThread, total=$createThread"
+
+echo "OK - ${message} | usedjvm=$used usedthread=$usedThread"
 exit $OK
