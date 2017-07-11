@@ -33,13 +33,13 @@ UNKNOWN=3
 die () {
   rc="$1"
   shift
-  (echo -n "$me: ERROR: ";
+  (echo -n "ERROR: ";
       if [ $# -gt 0 ]; then echo "$@"; else cat; fi) 1>&2
   exit $rc
 }
 
 warn () {
-  (echo -n "$me: WARNING: ";
+  (echo -n "WARNING: ";
       if [ $# -gt 0 ]; then echo "$@"; else cat; fi) 1>&2
 }
 
@@ -50,6 +50,12 @@ have_command () {
 require_command () {
   if ! have_command "$1"; then
     die 1 "Could not find required command '$1' in system PATH. Aborting."
+  fi
+}
+
+is_error_http_state () {
+  if [[ "$1" =~ [4-5][0-9][0-9] ]]; then
+    die 1 "Error response $1"		
   fi
 }
 
@@ -112,19 +118,27 @@ if [ ! -z $server ] && [ ! -z $controller ];then
   prefix="/host/$controller/server/$server"
 fi	
 
-content=$(curl -s --digest -u $user:$password -X GET "$url/management$prefix/core-service/platform-mbean/type/memory/?include-runtime=true")
+raw_content=$(curl -s --digest -u $user:$password -w "\n%{http_code}" -X GET "$url/management$prefix/core-service/platform-mbean/type/memory/?include-runtime=true")
+content="${raw_content%$'\n'*}"
+http_status="${raw_content##*$'\n'}"
+
 init=$(echo $content | jq '.["heap-memory-usage"].init')
 used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
 max=$(echo $content | jq '.["heap-memory-usage"].max')
 
-contentThread=$(curl -s --digest -u $user:$password -X GET "$url/management$prefix/core-service/platform-mbean/type/threading/?include-runtime=true")
+is_error_http_state $http_status 
 
-usedThread=$(echo $contentThread | jq '.["thread-count"]')
-peakThread=$(echo $contentThread | jq '.["peak-thread-count"]')
-createThread=$(echo $contentThread | jq '.["total-started-thread-count"]')
+raw_content_thread=$(curl -s --digest -u $user:$password -w "\n%{http_code}" -X GET "$url/management$prefix/core-service/platform-mbean/type/threading/?include-runtime=true")
+content_thread="${raw_content_thread%$'\n'*}"
+http_status="${raw_content_thread##*$'\n'}"
 
-message="HEAP parameters: init=$init, used=$used, committed=$commited, max=$max Thread parameters: used=$usedThread, peak=$peakThread, total=$createThread"
 
-echo "OK - ${message} | usedjvm=$used usedthread=$usedThread"
+used_thread=$(echo $content_thread | jq '.["thread-count"]')
+peak_thread=$(echo $content_thread | jq '.["peak-thread-count"]')
+create_thread=$(echo $content_thread | jq '.["total-started-thread-count"]')
+
+message="HEAP parameters: init=$init, used=$used, committed=$commited, max=$max Thread parameters: used=$used_thread, peak=$peak_thread, total=$create_thread"
+
+echo "OK - ${message} | usedjvm=$used usedthread=$used_thread"
 exit $OK
