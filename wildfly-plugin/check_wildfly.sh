@@ -24,9 +24,7 @@ EOF
 
 ## exit statuses recognized by Nagios
 OK=0
-WARNING=1
-CRITICAL=2
-UNKNOWN=3
+ERROR=2
 
 
 ## helper functions
@@ -49,13 +47,13 @@ have_command () {
 
 require_command () {
   if ! have_command "$1"; then
-    die 1 "Could not find required command '$1' in system PATH. Aborting."
+    die $ERROR "Could not find required command '$1' in system PATH. Aborting."
   fi
 }
 
 is_error_http_state () {
   if [[ "$1" =~ [4-5][0-9][0-9] ]]; then
-    die 1 "Error response $1"		
+    die $ERROR "Error response $1"		
   fi
 }
 
@@ -127,11 +125,15 @@ used=$(echo $content | jq '.["heap-memory-usage"].used')
 commited=$(echo $content | jq '.["heap-memory-usage"].committed')
 max=$(echo $content | jq '.["heap-memory-usage"].max')
 
+#check status
 is_error_http_state $http_status 
 
 raw_content_thread=$(curl -s --digest -u $user:$password -w "\n%{http_code}" -X GET "$url/management$prefix/core-service/platform-mbean/type/threading/?include-runtime=true")
 content_thread="${raw_content_thread%$'\n'*}"
 http_status="${raw_content_thread##*$'\n'}"
+
+#check status
+is_error_http_state $http_status
 
 
 used_thread=$(echo $content_thread | jq '.["thread-count"]')
