@@ -57,10 +57,6 @@ is_error_http_state () {
   fi
 }
 
-is_absolute_path () {
-    expr match "$1" '/' >/dev/null 2>/dev/null
-}
-
 
 ## parse command-line
 
