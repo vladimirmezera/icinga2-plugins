@@ -31,13 +31,13 @@ ERROR=2
 die () {
   rc="$1"
   shift
-  (echo -n "ERROR: ";
+  (echo -n "ERROR - ";
       if [ $# -gt 0 ]; then echo "$@"; else cat; fi) 1>&2
   exit $rc
 }
 
 warn () {
-  (echo -n "WARNING: ";
+  (echo -n "WARNING - ";
       if [ $# -gt 0 ]; then echo "$@"; else cat; fi) 1>&2
 }
 
