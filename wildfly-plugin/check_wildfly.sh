@@ -12,7 +12,7 @@ Usage: $me [options]
 A short description of what this check does should be here,
 but it is not (yet). If server run in 'standalone' mode don't setup parameters 's' and 'c'. 
 Options:
-  -a Address of endpoint e.g. http://localhost:9990/management
+  -a Address of endpoint (host and port) e.g. http://localhost:9990
   -u User for authentication 
   -p Password for authentication
   -s Server in domain mode
@@ -113,6 +113,16 @@ if [ ! -z $server ] && [ ! -z $controller ];then
 fi	
 
 raw_content=$(curl -s --digest -u $user:$password -w "\n%{http_code}" -X GET "$url/management$prefix/core-service/platform-mbean/type/memory/?include-runtime=true")
+
+RET=$?
+
+if [[ $RET -ne 0 ]]
+then
+ echo "ERROR - Cannot process query. $RESULT"
+ exit 2
+fi
+
+
 content="${raw_content%$'\n'*}"
 http_status="${raw_content##*$'\n'}"
 
